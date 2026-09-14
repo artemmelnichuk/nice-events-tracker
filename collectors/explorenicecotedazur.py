@@ -20,6 +20,12 @@ from bs4 import BeautifulSoup
 from collectors.base import BaseCollector, CollectorResult
 from core.models import EventRecord
 
+MONTHS = {
+    "january": "01", "february": "02", "march": "03", "april": "04",
+    "may": "05", "june": "06", "july": "07", "august": "08",
+    "september": "09", "october": "10", "november": "11", "december": "12",
+}
+
 BASE_URL = "https://www.explorenicecotedazur.com/en/events/all-events/"
 HEADERS = {"User-Agent": "Mozilla/5.0 (nice-events-tracker; personal project)"}
 REQUEST_DELAY_SECONDS = 0.5
@@ -52,7 +58,10 @@ def parse_period(card: Any) -> tuple[str, str]:
     def build(idx: int) -> str:
         if idx >= len(days) or idx >= len(months):
             return ""
-        return f"{days[idx]} {months[idx]} {year}".strip()
+        month = MONTHS.get(months[idx].strip().lower())
+        if not year or not month:
+            return ""
+        return f"{year}-{month}-{days[idx].strip().zfill(2)}"
 
     start_date = build(0)
     end_date = build(1) if len(days) > 1 else start_date

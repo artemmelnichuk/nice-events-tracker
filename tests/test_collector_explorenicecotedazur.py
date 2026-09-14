@@ -55,8 +55,8 @@ class ParseOfferTests(unittest.TestCase):
         self.assertEqual(record.category, "Concert")
         self.assertEqual(record.theme, "Jazz and blues")
         self.assertEqual(record.location, "Villefranche-sur-Mer")
-        self.assertEqual(record.start_date, "21 February 2026")
-        self.assertEqual(record.end_date, "29 November 2026")
+        self.assertEqual(record.start_date, "2026-02-21")
+        self.assertEqual(record.end_date, "2026-11-29")
         self.assertEqual(
             record.url,
             "https://www.explorenicecotedazur.com/en/event/concerts-at-the-trinquette-jazz-club/",
@@ -80,7 +80,7 @@ class ParsePeriodTests(unittest.TestCase):
         """
         card = BeautifulSoup(html, "lxml")
         start, end = parse_period(card)
-        self.assertEqual(start, "11 September 2026")
+        self.assertEqual(start, "2026-09-11")
         self.assertEqual(end, start)
 
 

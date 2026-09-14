@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from core.models import EventRecord
@@ -54,6 +55,20 @@ def normalize_url(value: str) -> str:
             "",
         )
     )
+
+
+def normalize_title_for_matching(title: str) -> str:
+    """Normalize a title for cross-source duplicate matching.
+
+    Different sources format the same real-world event differently --
+    Songkick appends " @ Venue Name" to every title, others don't. Strip
+    that, fold accents, drop punctuation, so "Djadja & Dinaz" (source A)
+    and "Djadja & Dinaz @ Palais Nikaia" (source B) compare equal.
+    """
+    title = re.split(r"\s+@\s+", str(title or ""), maxsplit=1)[0]
+    folded = unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode("ascii")
+    folded = re.sub(r"[^\w\s]", " ", folded, flags=re.UNICODE).lower()
+    return re.sub(r"\s+", " ", folded).strip()
 
 
 def build_deduplication_key(record: EventRecord) -> str:

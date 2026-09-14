@@ -15,7 +15,7 @@ from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
 from collectors.opera_de_nice import OperaDeNiceCollector
 from collectors.songkick import SongkickCollector
 from core.config import load_settings
-from core.deduplication import deduplicate_records
+from core.deduplication import deduplicate_records, merge_cross_source_duplicates
 from core.storage import load_records, merge_records, save_records
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -70,8 +70,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  ERROR: {message}")
         all_records.extend(result.records)
 
-    dedup_result = deduplicate_records(all_records)
-    print(f"\nCollected {len(all_records)} records, {dedup_result.duplicates} duplicates within this run")
+    cross_source_result = merge_cross_source_duplicates(all_records)
+    print(
+        f"\nCollected {len(all_records)} records, "
+        f"merged {cross_source_result.merged_groups} cross-source duplicates"
+    )
+
+    dedup_result = deduplicate_records(cross_source_result.records)
+    print(f"{dedup_result.duplicates} exact duplicates within this run")
 
     raw_path = PROJECT_ROOT / settings["storage"]["raw_path"]
     processed_path = PROJECT_ROOT / settings["storage"]["processed_path"]
