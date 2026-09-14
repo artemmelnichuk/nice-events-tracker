@@ -1,0 +1,9 @@
+storage:
+  raw_path: data/raw/nice_events_raw.xlsx
+  processed_path: data/processed/nice_events_processed.xlsx
+
+collection:
+  category_filter: Concert
+
+sources:
+  - explorenicecotedazur
