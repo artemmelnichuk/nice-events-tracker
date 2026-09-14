@@ -12,6 +12,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from collectors.base import BaseCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
+from collectors.opera_de_nice import OperaDeNiceCollector
+from collectors.songkick import SongkickCollector
 from core.config import load_settings
 from core.deduplication import deduplicate_records
 from core.storage import load_records, merge_records, save_records
@@ -21,12 +23,19 @@ CONFIG_PATH = PROJECT_ROOT / "config" / "settings.yaml"
 
 COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "explorenicecotedazur": ExploreNiceCoteDAzurCollector,
+    "songkick": SongkickCollector,
+    "opera_de_nice": OperaDeNiceCollector,
 }
+
+# Sources whose collector takes a category_filter kwarg (they list mixed
+# categories and need it to narrow down to concerts). Songkick is concert-only
+# by nature and needs no filter.
+CATEGORY_FILTERED_SOURCES = {"explorenicecotedazur", "opera_de_nice"}
 
 
 def build_collector(source_name: str, settings: dict) -> BaseCollector:
     collector_class = COLLECTOR_REGISTRY[source_name]
-    if source_name == "explorenicecotedazur":
+    if source_name in CATEGORY_FILTERED_SOURCES:
         category_filter = settings.get("collection", {}).get("category_filter")
         return collector_class(category_filter=category_filter)
     return collector_class()
