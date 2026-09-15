@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from collectors.base import BaseCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
+from collectors.helloasso import HelloAssoCollector
 from collectors.opera_de_nice import OperaDeNiceCollector
 from collectors.songkick import SongkickCollector
 from core.config import load_settings
@@ -25,6 +26,7 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "explorenicecotedazur": ExploreNiceCoteDAzurCollector,
     "songkick": SongkickCollector,
     "opera_de_nice": OperaDeNiceCollector,
+    "helloasso": HelloAssoCollector,
 }
 
 # Sources whose collector takes a category_filter kwarg (they list mixed
@@ -38,6 +40,9 @@ def build_collector(source_name: str, settings: dict) -> BaseCollector:
     if source_name in CATEGORY_FILTERED_SOURCES:
         category_filter = settings.get("collection", {}).get("category_filter")
         return collector_class(category_filter=category_filter)
+    if source_name == "helloasso":
+        associations = settings.get("helloasso", {}).get("associations", [])
+        return collector_class(association_slugs=associations)
     return collector_class()
 
 

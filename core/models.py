@@ -19,6 +19,7 @@ class EventRecord:
     source: str = ""
     date_collected: str = ""
     title: str = ""
+    description: str = ""
     category: str = ""
     theme: str = ""
     start_date: str = ""

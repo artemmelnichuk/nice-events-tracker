@@ -41,7 +41,7 @@ def deduplicate_records(records: list[EventRecord]) -> DeduplicationResult:
 # identity fields, just the ones sources tend to report unevenly (Songkick
 # has real venue names, explorenicecotedazur has genre themes, Opera de
 # Nice has prices; none of them have all three).
-_FILLABLE_FIELDS = ("venue", "theme", "price", "url", "region", "location")
+_FILLABLE_FIELDS = ("venue", "theme", "price", "url", "region", "location", "description")
 
 
 @dataclass(slots=True)

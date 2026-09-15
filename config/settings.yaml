@@ -9,3 +9,10 @@ sources:
   - explorenicecotedazur
   - songkick
   - opera_de_nice
+  - helloasso
+
+helloasso:
+  # Hand-picked organizers, not a general filter -- add more slugs here as
+  # you find other dark/alternative-music associations worth following.
+  associations:
+    - dark-paca
