@@ -2,8 +2,15 @@
 
 Uses the schema.org MusicEvent JSON-LD block embedded in each event card --
 more reliable than the display markup, and confirmed plain server-rendered
-HTML (no JS needed). Real listings run out after 2-3 pages; a page with no
-MusicEvent entries means we've reached the end.
+HTML (no JS needed to see the data). Real listings run out after 2-3 pages;
+a page with no MusicEvent entries means we've reached the end.
+
+Songkick blocks plain requests.Session traffic outright (406 on every
+header combination tried, including a full browser-like set) but loads
+fine in a real browser -- TLS/HTTP fingerprinting, not a header check
+(curl with the exact same headers passes; requests doesn't). Confirmed via
+the browser tool before reaching for Playwright, same as HelloAsso and the
+reference job collector's LinkedIn/WTTJ adapters.
 """
 
 from __future__ import annotations
@@ -15,20 +22,18 @@ from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import sync_playwright
 
 from collectors.base import BaseCollector, CollectorResult
 from core.models import EventRecord
 
 BASE_URL = "https://www.songkick.com/metro-areas/28903-france-nice"
-# Songkick's bot-detection rejects requests' default header set (406) even
-# with a browser-like User-Agent -- it's specifically the combination with
-# requests' automatic `Accept-Encoding: gzip, deflate` and missing `Accept`
-# that trips it (verified: matching curl's minimal header set passes).
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-    "Accept": "*/*",
-    "Accept-Encoding": "identity",
-}
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+PAGE_TIMEOUT_MS = 20_000
 REQUEST_DELAY_SECONDS = 0.5
 MAX_PAGES = 20  # safety cap -- real listings end well before this
 
@@ -79,28 +84,35 @@ class SongkickCollector(BaseCollector):
     def collect(self, session: requests.Session, limit: int | None = None) -> CollectorResult:
         result = CollectorResult(source=self.source_name)
 
-        for page_number in range(1, MAX_PAGES + 1):
-            if limit is not None and len(result.records) >= limit:
-                break
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page(user_agent=BROWSER_USER_AGENT)
+
             try:
-                response = session.get(page_url(page_number), headers=HEADERS, timeout=20)
-                response.raise_for_status()
-            except requests.RequestException as error:
-                result.errors += 1
-                result.error_messages.append(f"page {page_number}: {error}")
-                break
+                for page_number in range(1, MAX_PAGES + 1):
+                    if limit is not None and len(result.records) >= limit:
+                        break
+                    try:
+                        page.goto(page_url(page_number), timeout=PAGE_TIMEOUT_MS, wait_until="domcontentloaded")
+                        html = page.content()
+                    except PlaywrightError as error:
+                        result.errors += 1
+                        result.error_messages.append(f"page {page_number}: {error}")
+                        break
 
-            events = parse_json_ld_events(response.text)
-            if not events:
-                break
+                    events = parse_json_ld_events(html)
+                    if not events:
+                        break
 
-            for event in events:
-                result.records.append(record_from_event(event))
-                if limit is not None and len(result.records) >= limit:
-                    break
+                    for event in events:
+                        result.records.append(record_from_event(event))
+                        if limit is not None and len(result.records) >= limit:
+                            break
 
-            if page_number < MAX_PAGES:
-                time.sleep(REQUEST_DELAY_SECONDS)
+                    if page_number < MAX_PAGES:
+                        time.sleep(REQUEST_DELAY_SECONDS)
+            finally:
+                browser.close()
 
         result.found = len(result.records)
         return result
