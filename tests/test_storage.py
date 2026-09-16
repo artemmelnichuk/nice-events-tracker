@@ -40,6 +40,37 @@ class MergeRecordsTests(unittest.TestCase):
         self.assertEqual(counts_twice["existing"], 1)
         self.assertEqual(merged_twice[0].event_id, merged_once[0].event_id)
 
+    def test_a_url_gaining_a_second_source_updates_instead_of_duplicating(self) -> None:
+        # Regression test: a real event that was singleton on day 1 and picked
+        # up by cross-source merging on day 2 (source string changes from
+        # "explorenicecotedazur" to "explorenicecotedazur+songkick") must
+        # update the existing row, not create an orphaned duplicate.
+        day_one = [
+            EventRecord(
+                source="explorenicecotedazur",
+                title="Liv del Estal",
+                url="https://www.explorenicecotedazur.com/en/event/liv-del-estal/",
+            )
+        ]
+        merged_once, counts_once = merge_records([], day_one)
+        self.assertEqual(counts_once["new"], 1)
+
+        day_two = [
+            EventRecord(
+                source="explorenicecotedazur+songkick",
+                title="Liv del Estal",
+                url="https://www.explorenicecotedazur.com/en/event/liv-del-estal/",
+                venue="Frigo 16",
+            )
+        ]
+        merged_twice, counts_twice = merge_records(merged_once, day_two)
+
+        self.assertEqual(len(merged_twice), 1)
+        self.assertEqual(counts_twice["updated"], 1)
+        self.assertEqual(counts_twice["new"], 0)
+        self.assertEqual(merged_twice[0].event_id, merged_once[0].event_id)
+        self.assertEqual(merged_twice[0].venue, "Frigo 16")
+
     def test_changed_content_is_marked_updated_and_keeps_the_same_id(self) -> None:
         first_run = [EventRecord(source="x", title="Jazz Night", url="https://example.com/a/", venue="Old Venue")]
         deduplicate_records(first_run)

@@ -18,7 +18,6 @@ class DeduplicationKeyTests(unittest.TestCase):
         record = EventRecord(source="explorenicecotedazur", url="https://example.com/event/foo/")
         key = build_deduplication_key(record)
         self.assertIn("url", key)
-        self.assertIn("explorenicecotedazur", key)
 
     def test_falls_back_to_title_date_location_without_url(self) -> None:
         record = EventRecord(source="x", title="Jazz Night", start_date="12 September 2026", location="Nice")
@@ -29,6 +28,15 @@ class DeduplicationKeyTests(unittest.TestCase):
     def test_same_url_different_casing_produces_same_key(self) -> None:
         a = EventRecord(source="X", url="https://Example.com/Event/Foo/")
         b = EventRecord(source="x", url="https://example.com/Event/Foo")
+        self.assertEqual(build_deduplication_key(a), build_deduplication_key(b))
+
+    def test_same_url_different_source_produces_same_key(self) -> None:
+        # A record's `source` changes when cross-source merging picks it up
+        # (e.g. "explorenicecotedazur" -> "explorenicecotedazur+songkick").
+        # The identity key must not move when that happens, or merge_records()
+        # treats the merged record as new instead of updating the old one.
+        a = EventRecord(source="explorenicecotedazur", url="https://example.com/event/foo/")
+        b = EventRecord(source="explorenicecotedazur+songkick", url="https://example.com/event/foo/")
         self.assertEqual(build_deduplication_key(a), build_deduplication_key(b))
 
 

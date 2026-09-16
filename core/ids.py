@@ -78,11 +78,17 @@ def build_deduplication_key(record: EventRecord) -> str:
     different events). Without a URL, fall back to a normalized
     title+date+location composite -- good enough to catch a source re-listing
     the same event without a stable link.
+
+    Deliberately excludes `source`: cross-source merging can rewrite a
+    record's `source` field (e.g. "explorenicecotedazur" ->
+    "explorenicecotedazur+songkick") once a second site starts listing the
+    same event. If the key included source, that record would look brand new
+    to merge_records() on the next run instead of updating the one already in
+    storage, permanently orphaning the old row as a duplicate.
     """
-    source = normalize_text(record.source)
     normalized_url = normalize_url(record.url)
     if normalized_url:
-        return f"{source}|url|{normalized_url}"
+        return f"url|{normalized_url}"
 
     fallback = "|".join(
         (
@@ -91,7 +97,7 @@ def build_deduplication_key(record: EventRecord) -> str:
             normalize_text(record.location),
         )
     )
-    return f"{source}|fallback|{fallback}"
+    return f"fallback|{fallback}"
 
 
 def _source_slug(source: str) -> str:
