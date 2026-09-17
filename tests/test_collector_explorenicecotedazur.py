@@ -30,6 +30,30 @@ CONCERT_CARD_HTML = """
 </li>
 """
 
+CANCELLED_CARD_HTML = """
+<li class="wpet-block-list__offer" data-wpet-offer="64396">
+  <div class="iris-card" data-layer-wpet-offer-location="Nice">
+    <div class="iris-card__content">
+      <div class="wp-block-wpet-card-template-status">
+        <p class="entry-meta"><span class="iris-card__status fiet fiet--wpet-alert text-icon">Annulé</span></p>
+      </div>
+      <div class="wp-block-wpet-card-template-period period">
+        <p class="iris-card__period reset-margin">
+          <span class="iris-card__period__day">31</span>
+          <span class="iris-card__period__monthName">October</span>
+          <span class="iris-card__period__year">2026</span>
+        </p>
+      </div>
+      <h2 class="iris-card__content__title">
+        <a href="https://www.explorenicecotedazur.com/en/event/patrick-bruel/">Patrick Bruel</a>
+      </h2>
+      <div class="entry-meta"><span class="content">Concert</span></div>
+      <div class="entry-meta"><span class="content">Light music</span></div>
+    </div>
+  </div>
+</li>
+"""
+
 CARD_WITHOUT_TITLE_HTML = """
 <li class="wpet-block-list__offer" data-wpet-offer="1">
   <div class="iris-card"></div>
@@ -62,6 +86,15 @@ class ParseOfferTests(unittest.TestCase):
             "https://www.explorenicecotedazur.com/en/event/concerts-at-the-trinquette-jazz-club/",
         )
         self.assertEqual(record.source, "explorenicecotedazur")
+        self.assertEqual(record.availability, "")
+
+    def test_captures_the_source_s_own_cancellation_badge(self) -> None:
+        soup = BeautifulSoup(CANCELLED_CARD_HTML, "lxml")
+        offer_li = soup.select_one("li.wpet-block-list__offer")
+        record = parse_offer(offer_li)
+
+        self.assertIsNotNone(record)
+        self.assertEqual(record.availability, "Annulé")
 
     def test_returns_none_when_card_has_no_title_link(self) -> None:
         soup = BeautifulSoup(CARD_WITHOUT_TITLE_HTML, "lxml")

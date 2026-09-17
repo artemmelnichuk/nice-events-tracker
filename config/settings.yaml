@@ -4,6 +4,15 @@ storage:
 
 collection:
   category_filter: Concert
+  # Themes with a poor like rate in the review tool (0/10 across Pop music,
+  # Rap/R&B/Soul and Light music as of 100 ratings, 2026-09-17) -- sunk to the
+  # bottom of the processed workbook instead of interleaved chronologically,
+  # so review time goes to higher-potential events first. Not excluded
+  # outright: still collected and still ratable, just deprioritized.
+  deprioritized_themes:
+    - Pop music
+    - Rap, R&B, Soul
+    - Light music
 
 sources:
   - explorenicecotedazur

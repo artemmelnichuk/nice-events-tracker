@@ -32,6 +32,10 @@ class EventRecord:
     url: str = ""
     status: str = "scheduled"
     note: str = ""
+    # Verbatim text of the source's own alert badge (e.g. "Annulé", "Complet")
+    # when present on the listing card -- empty means the source showed no
+    # such badge, not that the event is confirmed on as scheduled.
+    availability: str = ""
 
     def to_dict(self) -> dict[str, str]:
         """Return the record in the canonical export schema."""

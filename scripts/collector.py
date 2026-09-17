@@ -17,6 +17,7 @@ from collectors.opera_de_nice import OperaDeNiceCollector
 from collectors.songkick import SongkickCollector
 from core.config import load_settings
 from core.deduplication import deduplicate_records, merge_cross_source_duplicates
+from core.priority import sort_by_theme_priority
 from core.storage import load_records, merge_records, save_records
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -86,12 +87,14 @@ def main(argv: list[str] | None = None) -> int:
 
     raw_path = PROJECT_ROOT / settings["storage"]["raw_path"]
     processed_path = PROJECT_ROOT / settings["storage"]["processed_path"]
+    deprioritized_themes = settings.get("collection", {}).get("deprioritized_themes", [])
 
-    save_records(dedup_result.records, raw_path, workbook_kind="raw")
+    save_records(sort_by_theme_priority(dedup_result.records, deprioritized_themes), raw_path, workbook_kind="raw")
     print(f"Saved raw run to {raw_path}")
 
     existing_records = load_records(processed_path)
     merged_records, counts = merge_records(existing_records, dedup_result.records)
+    merged_records = sort_by_theme_priority(merged_records, deprioritized_themes)
     save_records(merged_records, processed_path, workbook_kind="processed")
     print(
         f"Processed workbook: {len(merged_records)} total "

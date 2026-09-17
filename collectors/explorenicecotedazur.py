@@ -82,6 +82,9 @@ def parse_offer(offer_li: Any) -> EventRecord | None:
     theme = meta_values[1] if len(meta_values) > 1 else ""
     start_date, end_date = parse_period(card)
 
+    status_badge = card.select_one(".iris-card__status")
+    availability = status_badge.get_text(strip=True) if status_badge else ""
+
     record = EventRecord(
         source="explorenicecotedazur",
         date_collected=datetime.now().astimezone().isoformat(timespec="seconds"),
@@ -92,6 +95,7 @@ def parse_offer(offer_li: Any) -> EventRecord | None:
         end_date=end_date,
         location=card.get("data-layer-wpet-offer-location", ""),
         url=title_link.get("href", ""),
+        availability=availability,
     )
     return record
 
