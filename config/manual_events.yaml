@@ -1,0 +1,24 @@
+# Events found by hand, for sources the tracker can't (or shouldn't) read
+# automatically: Resident Advisor, Shotgun, Instagram, a friend's tip...
+#
+# Add an entry below, then either run scripts/collector.py (picked up like
+# any other source) or scripts/add_manual_events.py (just these, straight
+# into the workbook and the review tool).
+#
+# Required: title, date (YYYY-MM-DD).
+# Optional: end_date, venue, location, price, theme, category (default
+# Concert), url, description, availability (e.g. "Annulé"), found_via.
+# Unknown field names are reported as errors, not silently ignored.
+#
+# Example (a past event, shown for the format):
+#
+# - title: "Cielo presents: Boris Brejcha - Arènes de Fréjus"
+#   date: 2026-09-18
+#   venue: Arènes de Fréjus
+#   location: Fréjus
+#   price: "à partir de 52,50 €"
+#   theme: Techno, Minimal Techno
+#   url: https://ra.co/events/2492424
+#   found_via: Resident Advisor
+
+events: []

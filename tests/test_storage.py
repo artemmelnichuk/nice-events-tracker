@@ -4,7 +4,7 @@ from pathlib import Path
 
 from core.deduplication import deduplicate_records
 from core.models import EventRecord
-from core.storage import load_records, merge_records, save_records
+from core.storage import add_untracked_records, load_records, merge_records, save_records
 
 
 class SaveLoadRoundtripTests(unittest.TestCase):
@@ -115,6 +115,51 @@ class MergeRecordsTests(unittest.TestCase):
         self.assertEqual(counts["updated"], 1)
         self.assertEqual(merged_twice[0].event_id, merged_once[0].event_id)
         self.assertEqual(merged_twice[0].venue, "New Venue")
+
+
+class AddUntrackedRecordsTests(unittest.TestCase):
+    def test_adds_a_new_record_with_an_id(self) -> None:
+        incoming = [EventRecord(source="manual_events", title="New Night", start_date="2026-10-01", url="https://x.example/new")]
+
+        merged, added, skipped = add_untracked_records([], incoming)
+
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(len(added), 1)
+        self.assertEqual(skipped, [])
+        self.assertTrue(added[0].event_id)
+
+    def test_skips_and_never_overwrites_an_event_already_tracked(self) -> None:
+        stored = [
+            EventRecord(
+                event_id="explorenicecotedazur_abc",
+                source="explorenicecotedazur+songkick",
+                title="Liv del Estal",
+                start_date="2026-10-10",
+                venue="Frigo 16",
+                theme="DJ",
+                url="https://www.explorenicecotedazur.com/en/event/liv-del-estal/",
+            )
+        ]
+        # Same event typed in by hand: different url, different casing.
+        incoming = [EventRecord(source="manual_events", title="LIV DEL ESTAL", start_date="2026-10-10", url="https://ra.co/events/1")]
+
+        merged, added, skipped = add_untracked_records(stored, incoming)
+
+        self.assertEqual(added, [])
+        self.assertEqual(len(skipped), 1)
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(merged[0].venue, "Frigo 16")
+        self.assertEqual(merged[0].source, "explorenicecotedazur+songkick")
+
+    def test_running_twice_adds_nothing_the_second_time(self) -> None:
+        incoming = [EventRecord(source="manual_events", title="Once Only", start_date="2026-10-01", url="https://x.example/once")]
+
+        merged, added_first, _ = add_untracked_records([], incoming)
+        _, added_second, skipped_second = add_untracked_records(merged, [EventRecord(source="manual_events", title="Once Only", start_date="2026-10-01", url="https://x.example/once")])
+
+        self.assertEqual(len(added_first), 1)
+        self.assertEqual(added_second, [])
+        self.assertEqual(len(skipped_second), 1)
 
 
 if __name__ == "__main__":

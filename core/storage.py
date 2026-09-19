@@ -108,6 +108,40 @@ def _title_date_key(record: EventRecord) -> tuple[str, str] | None:
     return title, record.start_date
 
 
+def add_untracked_records(
+    existing: Iterable[EventRecord],
+    incoming: Iterable[EventRecord],
+) -> tuple[list[EventRecord], list[EventRecord], list[EventRecord]]:
+    """Append only the incoming records not already tracked; never overwrite one.
+
+    Unlike merge_records this leaves an existing row untouched -- the right
+    behaviour for a partial batch (hand-entered events) that must not clobber
+    a row already merged from several sources. Returns (all, added, skipped).
+    """
+    merged = list(existing)
+    known_keys = {build_deduplication_key(record) for record in merged}
+    known_title_dates = {title_date for record in merged if (title_date := _title_date_key(record))}
+    added: list[EventRecord] = []
+    skipped: list[EventRecord] = []
+
+    for record in incoming:
+        record.event_id = record.event_id or build_event_id(record)
+        key = build_deduplication_key(record)
+        title_date = _title_date_key(record)
+        if key in known_keys or (title_date and title_date in known_title_dates):
+            skipped.append(record)
+            continue
+
+        new_record = replace(record, status="new")
+        merged.append(new_record)
+        added.append(new_record)
+        known_keys.add(key)
+        if title_date:
+            known_title_dates.add(title_date)
+
+    return merged, added, skipped
+
+
 def merge_records(
     existing: Iterable[EventRecord],
     incoming: Iterable[EventRecord],

@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from collectors.base import BaseCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
 from collectors.helloasso import HelloAssoCollector
+from collectors.manual_events import ManualEventsCollector
 from collectors.opera_de_nice import OperaDeNiceCollector
 from collectors.panda_events import PandaEventsCollector
 from collectors.songkick import SongkickCollector
@@ -30,6 +31,7 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "opera_de_nice": OperaDeNiceCollector,
     "helloasso": HelloAssoCollector,
     "panda_events": PandaEventsCollector,
+    "manual_events": ManualEventsCollector,
 }
 
 # Sources whose collector takes a category_filter kwarg (they list mixed
