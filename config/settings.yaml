@@ -19,6 +19,7 @@ sources:
   - songkick
   - opera_de_nice
   - helloasso
+  - panda_events
 
 helloasso:
   # Hand-picked organizers, not a general filter -- add more slugs here as

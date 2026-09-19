@@ -14,6 +14,7 @@ from collectors.base import BaseCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
 from collectors.helloasso import HelloAssoCollector
 from collectors.opera_de_nice import OperaDeNiceCollector
+from collectors.panda_events import PandaEventsCollector
 from collectors.songkick import SongkickCollector
 from core.config import load_settings
 from core.deduplication import deduplicate_records, merge_cross_source_duplicates
@@ -28,6 +29,7 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "songkick": SongkickCollector,
     "opera_de_nice": OperaDeNiceCollector,
     "helloasso": HelloAssoCollector,
+    "panda_events": PandaEventsCollector,
 }
 
 # Sources whose collector takes a category_filter kwarg (they list mixed

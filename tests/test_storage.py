@@ -71,6 +71,37 @@ class MergeRecordsTests(unittest.TestCase):
         self.assertEqual(merged_twice[0].event_id, merged_once[0].event_id)
         self.assertEqual(merged_twice[0].venue, "Frigo 16")
 
+    def test_a_richer_source_swapping_the_url_updates_instead_of_duplicating(self) -> None:
+        # Regression test: when a new source joins an event and its (richer)
+        # record becomes the merge base, the stored record's url changes. The
+        # same normalized title on the same day must still find the old row.
+        stored = [
+            EventRecord(
+                source="explorenicecotedazur",
+                title="Liv del Estal",
+                start_date="2026-10-10",
+                url="https://www.explorenicecotedazur.com/en/event/liv-del-estal/",
+            )
+        ]
+        merged_once, _ = merge_records([], stored)
+
+        incoming = [
+            EventRecord(
+                source="explorenicecotedazur+panda_events",
+                title="LIV DEL ESTAL",
+                start_date="2026-10-10",
+                url="https://www.panda-events.com/evenement/liv-del-estal/",
+                price="à partir de 5 € + FL*",
+            )
+        ]
+        merged_twice, counts = merge_records(merged_once, incoming)
+
+        self.assertEqual(len(merged_twice), 1)
+        self.assertEqual(counts["updated"], 1)
+        self.assertEqual(counts["new"], 0)
+        self.assertEqual(merged_twice[0].event_id, merged_once[0].event_id)
+        self.assertEqual(merged_twice[0].price, "à partir de 5 € + FL*")
+
     def test_changed_content_is_marked_updated_and_keeps_the_same_id(self) -> None:
         first_run = [EventRecord(source="x", title="Jazz Night", url="https://example.com/a/", venue="Old Venue")]
         deduplicate_records(first_run)

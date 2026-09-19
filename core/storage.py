@@ -8,7 +8,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from core.ids import build_deduplication_key, build_event_id
+from core.ids import build_deduplication_key, build_event_id, normalize_title_for_matching
 from core.models import EVENT_RECORD_COLUMNS, EventRecord
 
 
@@ -101,6 +101,13 @@ def _content_signature(record: EventRecord) -> tuple[str, ...]:
     )
 
 
+def _title_date_key(record: EventRecord) -> tuple[str, str] | None:
+    title = normalize_title_for_matching(record.title)
+    if not title or not record.start_date:
+        return None
+    return title, record.start_date
+
+
 def merge_records(
     existing: Iterable[EventRecord],
     incoming: Iterable[EventRecord],
@@ -108,6 +115,11 @@ def merge_records(
     """Merge a run into the processed dataset and classify its changes."""
     merged = list(existing)
     by_key = {build_deduplication_key(record): index for index, record in enumerate(merged)}
+    by_title_date = {
+        title_date: index
+        for index, record in enumerate(merged)
+        if (title_date := _title_date_key(record))
+    }
     counts = {"new": 0, "existing": 0, "updated": 0}
 
     for incoming_record in incoming:
@@ -115,9 +127,21 @@ def merge_records(
         key = build_deduplication_key(incoming_record)
         existing_index = by_key.get(key)
 
+        # A cross-source merge takes its url from whichever member is richest,
+        # so a new source joining an event can swap the url -- and with it the
+        # identity key -- of a record already stored. Same normalized title on
+        # the same day is the project's own definition of "same event".
+        title_date = _title_date_key(incoming_record)
+        if existing_index is None and title_date:
+            existing_index = by_title_date.get(title_date)
+            if existing_index is not None:
+                by_key[key] = existing_index
+
         if existing_index is None:
             merged.append(replace(incoming_record, status="new"))
             by_key[key] = len(merged) - 1
+            if title_date:
+                by_title_date[title_date] = len(merged) - 1
             counts["new"] += 1
             continue
 
