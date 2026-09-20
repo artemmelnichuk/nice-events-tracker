@@ -8,6 +8,7 @@ from typing import Iterable
 
 import pandas as pd
 
+from core.deduplication import covers_same_event
 from core.ids import build_deduplication_key, build_event_id, normalize_title_for_matching
 from core.models import EVENT_RECORD_COLUMNS, EventRecord
 
@@ -146,16 +147,40 @@ def merge_records(
     existing: Iterable[EventRecord],
     incoming: Iterable[EventRecord],
 ) -> tuple[list[EventRecord], dict[str, int]]:
-    """Merge a run into the processed dataset and classify its changes."""
+    """Merge a run into the processed dataset and classify its changes.
+
+    An incoming record is matched to a stored row by identity key, then by
+    (normalized title, date), then -- for rows nothing else claimed -- by
+    `covers_same_event`. The last step is what keeps a row's id (and the
+    ratings hung on it) when a new source joins its event and changes its
+    title and url ("Acid Pauli @ Le 109" becoming "ACID PAULI x REF SESSION
+    #18"). Any further stored rows the same record covers are its former
+    duplicates and are dropped, counted as "absorbed".
+    """
     merged = list(existing)
+    stored_rows = list(merged)
+    stored_count = len(merged)
     by_key = {build_deduplication_key(record): index for index, record in enumerate(merged)}
     by_title_date = {
         title_date: index
         for index, record in enumerate(merged)
         if (title_date := _title_date_key(record))
     }
-    counts = {"new": 0, "existing": 0, "updated": 0}
+    counts = {"new": 0, "existing": 0, "updated": 0, "absorbed": 0}
+    matched: set[int] = set()
 
+    def update_row(index: int, incoming_record: EventRecord) -> None:
+        previous = merged[index]
+        status = "updated" if _content_signature(previous) != _content_signature(incoming_record) else "existing"
+        merged[index] = replace(
+            incoming_record,
+            event_id=previous.event_id or incoming_record.event_id,
+            status=status,
+        )
+        matched.add(index)
+        counts[status] += 1
+
+    unmatched: list[EventRecord] = []
     for incoming_record in incoming:
         incoming_record.event_id = incoming_record.event_id or build_event_id(incoming_record)
         key = build_deduplication_key(incoming_record)
@@ -165,27 +190,44 @@ def merge_records(
         # so a new source joining an event can swap the url -- and with it the
         # identity key -- of a record already stored. Same normalized title on
         # the same day is the project's own definition of "same event".
-        title_date = _title_date_key(incoming_record)
-        if existing_index is None and title_date:
+        if existing_index is None and (title_date := _title_date_key(incoming_record)):
             existing_index = by_title_date.get(title_date)
             if existing_index is not None:
                 by_key[key] = existing_index
 
-        if existing_index is None:
-            merged.append(replace(incoming_record, status="new"))
-            by_key[key] = len(merged) - 1
-            if title_date:
-                by_title_date[title_date] = len(merged) - 1
-            counts["new"] += 1
+        if existing_index is None or existing_index in matched:
+            unmatched.append(incoming_record)
+        else:
+            update_row(existing_index, incoming_record)
+
+    absorbed: set[int] = set()
+    for incoming_record in unmatched:
+        key = build_deduplication_key(incoming_record)
+        covered = [
+            index
+            for index in range(stored_count)
+            if index not in matched and covers_same_event(merged[index], incoming_record)
+        ]
+        if covered:
+            update_row(covered[0], incoming_record)
+            by_key[key] = covered[0]
             continue
 
-        previous = merged[existing_index]
-        status = "updated" if _content_signature(previous) != _content_signature(incoming_record) else "existing"
-        merged[existing_index] = replace(
-            incoming_record,
-            event_id=previous.event_id or incoming_record.event_id,
-            status=status,
-        )
-        counts[status] += 1
+        merged.append(replace(incoming_record, status="new"))
+        matched.add(len(merged) - 1)
+        counts["new"] += 1
 
+    # Stored rows no incoming record claimed, but that a record which did match
+    # now covers, are its former duplicates (a second Songkick listing of the
+    # same festival, say). Compared against the row as it was stored.
+    for index in range(stored_count):
+        if index in matched:
+            continue
+        stored_row = stored_rows[index]
+        if any(covers_same_event(stored_row, merged[claimed]) for claimed in matched):
+            absorbed.add(index)
+
+    counts["absorbed"] = len(absorbed)
+    if absorbed:
+        merged = [record for index, record in enumerate(merged) if index not in absorbed]
     return merged, counts

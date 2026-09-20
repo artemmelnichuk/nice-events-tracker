@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
 from pathlib import Path
 
 import requests
@@ -19,6 +20,7 @@ from collectors.panda_events import PandaEventsCollector
 from collectors.songkick import SongkickCollector
 from core.config import load_settings
 from core.deduplication import deduplicate_records, merge_cross_source_duplicates
+from core.filters import drop_finished_events
 from core.priority import sort_by_theme_priority
 from core.storage import load_records, merge_records, save_records
 
@@ -96,13 +98,18 @@ def main(argv: list[str] | None = None) -> int:
     save_records(sort_by_theme_priority(dedup_result.records, deprioritized_themes), raw_path, workbook_kind="raw")
     print(f"Saved raw run to {raw_path}")
 
+    upcoming_records, finished = drop_finished_events(dedup_result.records, date.today().isoformat())
+    if finished:
+        print(f"Skipped {finished} events that already ended")
+
     existing_records = load_records(processed_path)
-    merged_records, counts = merge_records(existing_records, dedup_result.records)
+    merged_records, counts = merge_records(existing_records, upcoming_records)
     merged_records = sort_by_theme_priority(merged_records, deprioritized_themes)
     save_records(merged_records, processed_path, workbook_kind="processed")
     print(
         f"Processed workbook: {len(merged_records)} total "
-        f"({counts['new']} new, {counts['updated']} updated, {counts['existing']} unchanged) -> {processed_path}"
+        f"({counts['new']} new, {counts['updated']} updated, {counts['existing']} unchanged, "
+        f"{counts['absorbed']} duplicates absorbed) -> {processed_path}"
     )
 
     return 0
