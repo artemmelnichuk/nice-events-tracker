@@ -12,6 +12,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from collectors.base import BaseCollector
+from collectors.cannes import CannesCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
 from collectors.helloasso import HelloAssoCollector
 from collectors.manual_events import ManualEventsCollector
@@ -34,12 +35,13 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "helloasso": HelloAssoCollector,
     "panda_events": PandaEventsCollector,
     "manual_events": ManualEventsCollector,
+    "cannes": CannesCollector,
 }
 
 # Sources whose collector takes a category_filter kwarg (they list mixed
 # categories and need it to narrow down to concerts). Songkick is concert-only
 # by nature and needs no filter.
-CATEGORY_FILTERED_SOURCES = {"explorenicecotedazur", "opera_de_nice"}
+CATEGORY_FILTERED_SOURCES = {"explorenicecotedazur", "opera_de_nice", "cannes"}
 
 
 def build_collector(source_name: str, settings: dict) -> BaseCollector:

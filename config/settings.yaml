@@ -21,6 +21,7 @@ sources:
   - helloasso
   - panda_events
   - manual_events
+  - cannes
 
 helloasso:
   # Hand-picked organizers, not a general filter -- add more slugs here as
