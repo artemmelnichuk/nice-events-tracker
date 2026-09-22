@@ -22,6 +22,7 @@ sources:
   - panda_events
   - manual_events
   - cannes
+  - antibes
 
 helloasso:
   # Hand-picked organizers, not a general filter -- add more slugs here as
