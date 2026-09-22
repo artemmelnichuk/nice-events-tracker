@@ -1,12 +1,12 @@
 """Common interface for source-specific event collectors.
 
-Unlike the job-collector reference, no adapter here needs a rendered
-browser page yet -- every confirmed source (explorenicecotedazur.com,
-Songkick, Nikaia, Opera de Nice, Cannes, Antibes) is plain server-rendered
-HTML. So collectors take a plain ``requests.Session`` instead of a
-Playwright browser context. If a future source needs real JS rendering,
-that adapter can bring its own Playwright setup without forcing the
-dependency on every other collector.
+Collectors take a plain ``requests.Session`` -- most sources
+(explorenicecotedazur.com, Nikaia, Opera de Nice, Cannes) are plain
+server-rendered HTML and never touch it beyond that. A source whose
+category/venue only shows up after client-side JS runs (Songkick, blocked
+outright without a real browser; Antibes, Angular-rendered detail pages)
+brings its own Playwright setup instead, without forcing the dependency
+on every other collector.
 """
 
 from __future__ import annotations
