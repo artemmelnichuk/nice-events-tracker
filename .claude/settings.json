@@ -6,7 +6,16 @@
       "mcp__Claude_Browser__read_network_requests",
       "mcp__terminal__read_terminal",
       "Bash(tasklist *)",
-      "Bash(where *)"
+      "Bash(where *)",
+"Bash(git add *)",
+"Bash(git commit -m *)",
+"Bash(git merge *)",
+"Bash(git push origin master)",
+"Bash(git worktree list)",
+"Bash(git worktree remove *)",
+"Bash(git branch -d *)",
+"Bash(.venv/Scripts/python.exe -m unittest *)",
+"Bash(../../../.venv/Scripts/python.exe -m unittest *)"
     ]
   }
 }
