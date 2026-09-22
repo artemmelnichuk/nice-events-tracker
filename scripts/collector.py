@@ -17,6 +17,7 @@ from collectors.cannes import CannesCollector
 from collectors.explorenicecotedazur import ExploreNiceCoteDAzurCollector
 from collectors.helloasso import HelloAssoCollector
 from collectors.manual_events import ManualEventsCollector
+from collectors.menton import MentonCollector
 from collectors.opera_de_nice import OperaDeNiceCollector
 from collectors.panda_events import PandaEventsCollector
 from collectors.songkick import SongkickCollector
@@ -38,12 +39,13 @@ COLLECTOR_REGISTRY: dict[str, type[BaseCollector]] = {
     "manual_events": ManualEventsCollector,
     "cannes": CannesCollector,
     "antibes": AntibesCollector,
+    "menton": MentonCollector,
 }
 
 # Sources whose collector takes a category_filter kwarg (they list mixed
 # categories and need it to narrow down to concerts). Songkick is concert-only
 # by nature and needs no filter.
-CATEGORY_FILTERED_SOURCES = {"explorenicecotedazur", "opera_de_nice", "cannes", "antibes"}
+CATEGORY_FILTERED_SOURCES = {"explorenicecotedazur", "opera_de_nice", "cannes", "antibes", "menton"}
 
 
 def build_collector(source_name: str, settings: dict) -> BaseCollector:

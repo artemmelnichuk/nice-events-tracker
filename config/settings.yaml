@@ -23,6 +23,7 @@ sources:
   - manual_events
   - cannes
   - antibes
+  - menton
 
 helloasso:
   # Hand-picked organizers, not a general filter -- add more slugs here as
