@@ -9,6 +9,9 @@ the process stops being manual arithmetic done in a chat turn.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from core.models import EventRecord
 
 # The live document schema is a curated subset of EventRecord's fields, plus
@@ -83,3 +86,25 @@ def compute_sync_batches(
             )
 
     return [writes[i : i + BATCH_SIZE] for i in range(0, len(writes), BATCH_SIZE)]
+
+
+def load_snapshot(directory: Path, versions: dict[str, int] | None = None) -> dict[str, dict]:
+    """Read an ArtifactData `out_dir` dump into the shape `compute_sync_batches` expects.
+
+    The dump is `<directory>/events/<doc_id>.json`. Those files carry no
+    document version -- it only shows in the tool's printed listing -- so
+    versions come from `versions`; a document missing there gets 0, which
+    `unpinned_updates` flags before anything is written.
+    """
+    versions = versions or {}
+    snapshot: dict[str, dict] = {}
+    for path in sorted((Path(directory) / "events").glob("*.json")):
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        doc["version"] = versions.get(path.stem, 0)
+        snapshot[path.stem] = doc
+    return snapshot
+
+
+def unpinned_updates(batches: list[list[dict]]) -> list[str]:
+    """Ids of `update` writes whose document version is unknown (a pin of 0)."""
+    return [write["doc_id"] for batch in batches for write in batch if write["op"] == "update" and not write.get("if_version")]
