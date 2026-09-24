@@ -22,7 +22,11 @@ sources:
   - panda_events
   - manual_events
   - cannes
-  - antibes
+  # antibes is switched off on purpose: its legal notice forbids "extractions de
+  # base de donnees" without prior agreement, and its adapter has to pass as a
+  # regular Chrome to get the detail pages. The code stays; re-enable only with
+  # the site's written consent.
+  # - antibes
   - menton
 
 helloasso:
