@@ -25,6 +25,26 @@ collectors ─▶ cross-source merge ─▶ in-run dedup ─▶ drop finished �
 (per source)  (title/date/venue)    (by URL)                        (stable ids, absorbs duplicates)
 ```
 
+### Example
+
+Four invented listings (fictional artist, venues and URLs) for the same day, run through the real `merge_cross_source_duplicates`:
+
+| Source | Title as listed | Theme | Venue | Price |
+|---|---|---|---|---|
+| explorenicecotedazur | Marlowe & the Tides — Blue Hour Tour | Jazz and blues | – | – |
+| songkick | Marlowe & the Tides @ Salle Fictive | – | Salle Fictive | – |
+| panda_events | MARLOWE & THE TIDES | – | Salle Fictive | from 18 € |
+| songkick | Quartet Nocturne @ Halle du Port | – | Halle du Port | – |
+
+Result: two rows.
+
+| Source | Title | Theme | Venue | Price |
+|---|---|---|---|---|
+| explorenicecotedazur+panda_events+songkick | Marlowe & the Tides | Jazz and blues | Salle Fictive | from 18 € |
+| songkick | Quartet Nocturne @ Halle du Port | – | Halle du Port | – |
+
+The first three share a date and a title (exactly, or as a word prefix), so they become one row that takes the theme from one source, the venue from another and the price from the third. The all-caps title is replaced by the mixed-case one. The fourth is a different act on the same day and stays separate. The rules are covered in `tests/test_cross_source_dedup.py` and `tests/test_second_pass_dedup.py`.
+
 ## Sources
 
 | Source | How | Notes |
