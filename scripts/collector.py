@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Skipped {finished} events that already ended")
 
     existing_records = load_records(processed_path)
-    merged_records, counts = merge_records(existing_records, upcoming_records)
+    merged_records, counts = merge_records(existing_records, upcoming_records, run_sources=sources)
     merged_records = sort_by_theme_priority(merged_records, deprioritized_themes)
     save_records(merged_records, processed_path, workbook_kind="processed")
     print(

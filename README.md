@@ -49,7 +49,7 @@ python -m venv .venv
 .venv\Scripts\python scripts\collector.py
 ```
 
-Output goes to `data/raw/nice_events_raw.xlsx` and `data/processed/nice_events_processed.xlsx` (gitignored). Run all sources together: a partial run (`--source X`) replaces already merged rows with single-source versions.
+Output goes to `data/raw/nice_events_raw.xlsx` and `data/processed/nice_events_processed.xlsx` (gitignored). A partial run (`--source X`) refreshes X's fields on rows already merged from several sources and keeps what the other sources contributed (theme, venue, ...); run all sources to re-decide a merge from scratch.
 
 Tests run offline on saved markup and fake sessions:
 

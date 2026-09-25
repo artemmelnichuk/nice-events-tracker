@@ -8,7 +8,7 @@ from typing import Iterable
 
 import pandas as pd
 
-from core.deduplication import covers_same_event
+from core.deduplication import _FILLABLE_FIELDS, covers_same_event
 from core.ids import build_deduplication_key, build_event_id, normalize_title_for_matching
 from core.models import EVENT_RECORD_COLUMNS, EventRecord
 
@@ -109,6 +109,35 @@ def _title_date_key(record: EventRecord) -> tuple[str, str] | None:
     return title, record.start_date
 
 
+def _keep_other_sources(
+    stored: EventRecord,
+    incoming: EventRecord,
+    run_sources: set[str] | None,
+) -> EventRecord:
+    """Carry over what sources outside this run contributed to a stored row.
+
+    A `--source X` run only sees X's version of an event that an earlier full
+    run merged from several sources. Taken as is, it would wipe the theme or
+    venue those other sources supplied. When the stored row names a source
+    the run did not collect, the incoming record keeps its own non-empty
+    fields, fills the blanks from the stored row, keeps the stored merged
+    title and url, and keeps every source in `source`.
+    """
+    stored_sources = {source for source in stored.source.split("+") if source}
+    if run_sources is None or stored_sources <= run_sources:
+        return incoming
+    kept = replace(
+        incoming,
+        title=stored.title or incoming.title,
+        url=stored.url or incoming.url,
+        source="+".join(sorted(stored_sources | {s for s in incoming.source.split("+") if s})),
+    )
+    for field in _FILLABLE_FIELDS:
+        if not getattr(kept, field) and getattr(stored, field):
+            setattr(kept, field, getattr(stored, field))
+    return kept
+
+
 def add_untracked_records(
     existing: Iterable[EventRecord],
     incoming: Iterable[EventRecord],
@@ -146,6 +175,8 @@ def add_untracked_records(
 def merge_records(
     existing: Iterable[EventRecord],
     incoming: Iterable[EventRecord],
+    *,
+    run_sources: Iterable[str] | None = None,
 ) -> tuple[list[EventRecord], dict[str, int]]:
     """Merge a run into the processed dataset and classify its changes.
 
@@ -156,7 +187,12 @@ def merge_records(
     title and url ("Acid Pauli @ Le 109" becoming "ACID PAULI x REF SESSION
     #18"). Any further stored rows the same record covers are its former
     duplicates and are dropped, counted as "absorbed".
+
+    `run_sources` names the sources this run collected. A matched stored row
+    that also comes from other sources is completed rather than replaced
+    (see `_keep_other_sources`); without it every match replaces the row.
     """
+    run_sources = set(run_sources) if run_sources is not None else None
     merged = list(existing)
     stored_rows = list(merged)
     stored_count = len(merged)
@@ -171,6 +207,7 @@ def merge_records(
 
     def update_row(index: int, incoming_record: EventRecord) -> None:
         previous = merged[index]
+        incoming_record = _keep_other_sources(previous, incoming_record, run_sources)
         status = "updated" if _content_signature(previous) != _content_signature(incoming_record) else "existing"
         merged[index] = replace(
             incoming_record,
